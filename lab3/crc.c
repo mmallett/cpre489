@@ -38,5 +38,6 @@ void log_info(char* message){
 }
 
 int main(){
-	
+	init_data_buffer();
+	read_data();	
 }
