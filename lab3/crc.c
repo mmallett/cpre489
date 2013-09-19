@@ -14,30 +14,35 @@ void init_data_buffer(){
 }
 
 void read_data(){
+	prompt("begin typing data");
 	// read DATA_BUFFER_SIZE characters from STD_IN
 	// break on newline
 	int i;
 	for(i=0; i<DATA_BUFFER_SIZE; i++){
 		char c = getchar();
 		if(c == '\n'){
-			log_info("input halted on newline");
+			info("input halted on newline");
 			return;
 		}
 		else{
 			data_buffer[i] = c;
 		}
 	}
-	log_info("data buffer limit reached, halting input");
+	info("data buffer limit reached, halting input");
 	return;
 }
 
-void log_info(char* message){
+void prompt(char* message){
+	printf("crc>> %s\n", message);
+}
+
+void info(char* message){
 	if(DEBUG){
-		printf("[INFO] %s\n", message);
+		printf("crc [info] %s\n", message);
 	}
 }
 
-int main(){
+void main(){
 	init_data_buffer();
 	read_data();	
 }

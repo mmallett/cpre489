@@ -33,10 +33,29 @@ void read_data();
 void clear_data();
 
 //////////////////////////////////////////
+// CRC MODULE
+// crc calculation and checking
+//////////////////////////////////////////
+
+// generate a crc field for a given data buffer
+//    char* data the data to generate the CRC for
+//    char* crc return pointer for the generated crc
+//    returns the char* crc argument
+char* crc_gen(char* data, char* crc);
+
+// check if the crc is valid for the given data
+//    char* data the data to check crc against
+//    char* crc crc code used to check with
+//    returns 1 if valid 0 if invalid
+int crc_check(char* data, char* crc);
+
+//////////////////////////////////////////
 // NICE TO HAVES
 // general utilities
 //////////////////////////////////////////
 
 int DEBUG = 1;
 
-void log_info(char*);
+void prompt(char*);
+
+void info(char*);
