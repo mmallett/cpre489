@@ -7,6 +7,8 @@
  * CRC generator and checker implementation
  */
 
+#include "crc.h"
+
 void init_data_buffer(){
 	data_buffer = (char*) malloc((DATA_BUFFER_SIZE + 4) * sizeof(char));
 }
@@ -14,6 +16,7 @@ void init_data_buffer(){
 void read_data(){
 	// read DATA_BUFFER_SIZE characters from STD_IN
 	// break on newline
+	int i;
 	for(i=0; i<DATA_BUFFER_SIZE; i++){
 		char c = getchar();
 		if(c == '\n'){
