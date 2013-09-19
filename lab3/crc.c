@@ -44,17 +44,17 @@ int16_t crc_gen(char* data, int16_t gen_poly){
 		int j;
 		for(j=0; j<8; j++){
 			// upper bits of 8 MSB
-			seg_1 = (data_buffer[i] << j) << 8;
+			unsigned char seg_1 = (data_buffer[i] << j) << 8;
 			// lower part of 8 MSB
-			seg_2 = (((unsigned) data_buffer[i+1]) >> (8 - j)) << 8;
+			unsigned char seg_2 = (((unsigned) data_buffer[i+1]) >> (8 - j)) << 8;
 			// upper part of 8 LSB
-			seg_3 = data_buffer[i+1] << j;
+			unsigned char seg_3 = data_buffer[i+1] << j;
 			// lower part of 8 LSB
-			seg_4 = data_buffer[i+3] & (0xFF ^ (0xFF << j));
+			unsigned char seg_4 = data_buffer[i+3] & (0xFF ^ (0xFF << j));
 
 			uint16_t chunk = seg_1 | seg_2 | seg_3 | seg_4;
 
-			result = chunk ^ gen_poly;
+			uint16_t result = chunk ^ gen_poly;
 
 			// deconstruct result into the correct offsets across 3 bytes
 		}
