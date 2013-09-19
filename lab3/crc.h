@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <stdint.h>
 
 ////////////////////////////////////////////
 // DATA MODULE
@@ -21,7 +21,10 @@
 #define DATA_BUFFER_SIZE 1024
 
 // buffer to hold input data
-char * data_buffer;
+signed char * data_buffer;
+
+// length of aforementioned data buffer
+int input_length;
 
 // construct the data buffer
 void init_data_buffer();
@@ -39,15 +42,15 @@ void clear_data();
 
 // generate a crc field for a given data buffer
 //    char* data the data to generate the CRC for
-//    char* crc return pointer for the generated crc
-//    returns the char* crc argument
-char* crc_gen(char* data, char* crc);
+//    int16_t crc return pointer for the generated crc
+//    returns the calculated crc
+int16_t crc_gen(char* data, int16_t gen_poly);
 
 // check if the crc is valid for the given data
 //    char* data the data to check crc against
-//    char* crc crc code used to check with
+//    int16_t crc crc code used to check with
 //    returns 1 if valid 0 if invalid
-int crc_check(char* data, char* crc);
+int crc_check(char* data, int16_t crc);
 
 //////////////////////////////////////////
 // NICE TO HAVES
