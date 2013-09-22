@@ -96,6 +96,7 @@ int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
 				bit_pointer = 7;
 				byte_pointer++;
 			}
+
 			// the last bit position move exceeds
 			// data buffer range
 			// this indicates that the current
@@ -105,20 +106,19 @@ int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
 				break;
 			}
 
+			// isolate the bit_pointer bit and OR it into
+			// LSB of working buffer
 			working_buffer <<= 1;
 			uint16_t mask = 0x0001 << bit_pointer;
 			working_buffer |= (uint16_t) (data[byte_pointer] & mask) >> bit_pointer;
 			
-			dividend = working_buffer;
-		}
+		}//end inner while
+
+		dividend = working_buffer;
 			
+	}//end outer while
 
-	}
-
-	
-	
-	//result = xor divisor dividend
-	//
+	return ret;
 }
 
 void prompt(char* message){
@@ -126,9 +126,17 @@ void prompt(char* message){
 }
 
 void info(char* message){
+	printf("crc [info] %s\n", message);
+}
+
+void debug(char* message){
 	if(DEBUG){
-		printf("crc [info] %s\n", message);
+		printf("crc [debug] %s\n", message);
 	}
+}
+
+void error(char* message){
+	printf("crc [error] %s\n", message);
 }
 
 void main(){
