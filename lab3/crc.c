@@ -67,7 +67,21 @@ int16_t crc_gen(char* data, int16_t gen_poly){
 }
 
 int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
-	//load first 16 bits into dividend
+
+	// error check	
+	int data_mem_size = sizeof(data) / sizeof(char);
+	if(data_mem_size < data_length){
+		char message[40];
+		sprintf(message, "size of data buffer (%d) is less than data_length (%d)", data_mem_size, data_length);
+		error(message);
+		return;
+	}
+	if(data_length < 2){
+		error("can't compute crc16 with less than 16 bits!");
+		return;
+	}
+
+	// load first 16 bits into dividend
 	int16_t dividend = (data[0] << 8) | data[1];
 	int16_t divisor = gen_poly;
 
@@ -140,6 +154,11 @@ void error(char* message){
 }
 
 void main(){
-	init_data_buffer();
-	read_data();	
+	//init_data_buffer();
+	//read_data();	
+	char* data_buffer = (char*) calloc(3, sizeof(char));
+	int16_t polynomial = 0b1000000000000001;
+	data_buffer[0] = 'a';
+	int16_t crc_code = crc_alg(data_buffer, 3, polynomial);
+	printf("mats big code %x\n", crc_code);
 }
