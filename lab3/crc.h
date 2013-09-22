@@ -52,7 +52,8 @@ int16_t crc_gen(char* data, int16_t gen_poly);
 //    returns 1 if valid 0 if invalid
 int crc_check(char* data, int16_t crc);
 
-int16_t crc_alg(char*data, int16_t gen_poly);
+// compute crc checksum
+int16_t crc_alg(char* data, int data_length, int16_t gen_poly);
 
 //////////////////////////////////////////
 // NICE TO HAVES
