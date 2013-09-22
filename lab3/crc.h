@@ -61,6 +61,14 @@ int16_t crc_alg(char*data, int16_t gen_poly);
 
 int DEBUG = 1;
 
+//formats input prompt printing
 void prompt(char*);
 
+//formats information printing
 void info(char*);
+
+//formats debug printing, toggled off by setting DEBUG = 0
+void debug(char*);
+
+//formats error printing
+void error(char*);
