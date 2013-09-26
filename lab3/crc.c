@@ -59,10 +59,10 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 	}
 
 	// load first 17 bits into dividend
-	uint32_t dividend = // 17 bits
-		(data[0] << 9) | // 8 bits from byte 0
-		(data[1] << 1) | // 8 bits from byte 1
-		((data[2] >> 7) & 0x01); //1 bit from byte 2
+	uint32_t dividend =  // 17 bits
+		(((uint32_t)data[0]) << 9) | // 8 bits from byte 0
+		(((uint32_t)data[1]) << 1) | // 8 bits from byte 1
+		((((uint32_t)data[2]) >> 7) & 0x01); //1 bit from byte 2
 	uint32_t divisor = gen_poly; //17 bits
 
 	sprintf(message, "dividend %x", dividend);
@@ -73,27 +73,17 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 
 	//17 bit buffer
 	uint32_t ret;
+	
+	//the best buffer ever
+	uint32_t working_buffer = dividend;
+
+	//guess what this is
+	uint32_t result;
 
 	while(byte_pointer < data_length){
 		
-		//xor dividend divisor
-
-		//dividend = result
-
-		//sll and pop next bit until
-		//MSB of dividend is one or byte_pointer passed maximum
-
-		uint32_t result = dividend ^ divisor;
-		uint32_t working_buffer = result;
-		
-		//do until 1 in MSB
+		//get working buffer ready for 'divide'
 		while(!(working_buffer >> 16)){
-			// move state to next bit
-			bit_pointer--;
-			if(bit_pointer < 0){
-				bit_pointer = 7;
-				byte_pointer++;
-			}
 
 			debug("loading next bit into working buffer");
 			sprintf(message, "byte %d bit %d",
@@ -106,8 +96,9 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 			// result is the return value
 			if(byte_pointer >= data_length){
 				debug("EOF");
-				ret = result;
-				break;
+			//	ret = result;
+			//	break;
+				goto END;
 			}
 
 			// isolate the bit_pointer bit and OR it into
@@ -115,17 +106,33 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 			working_buffer <<= 1;
 			uint32_t mask = 0x00000001 << bit_pointer;
 			working_buffer |= (uint32_t) (data[byte_pointer] & mask) >> bit_pointer;
+//			uint32_t the_byte = (uint32_t) (data[byte_pointer] & mask) >> bit_pointer;
+//			working_buffer |= the_byte;
+
+//			sprintf(message, "bit %d in byte %d is %x", bit_pointer, byte_pointer, the_byte);
+//			debug(message);
 			
 			sprintf(message, "working buffer %x", working_buffer);
 			debug(message);			
 
+			// move state to next bit
+			bit_pointer--;
+			if(bit_pointer < 0){
+				bit_pointer = 7;
+				byte_pointer++;
+			}
+
+
 		}//end inner while
 
-		dividend = working_buffer;
+		//do the 'divide'
+
+		result = working_buffer ^ divisor;
+		working_buffer = result;
 			
 	}//end outer while
-
-	return ret;
+END:
+	return result & 0x0000FFFF;
 }
 
 void prompt(char* message){
