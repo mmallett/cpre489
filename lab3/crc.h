@@ -53,7 +53,7 @@ int16_t crc_gen(char* data, int16_t gen_poly);
 int crc_check(char* data, int16_t crc);
 
 // compute crc checksum
-int16_t crc_alg(char* data, int data_length, uint32_t gen_poly);
+uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly);
 
 //////////////////////////////////////////
 // NICE TO HAVES
