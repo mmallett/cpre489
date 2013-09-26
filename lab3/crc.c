@@ -117,11 +117,17 @@ int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
 				byte_pointer++;
 			}
 
+			debug("loading next bit into working buffer");
+			sprintf(message, "byte %d bit %d",
+				byte_pointer, bit_pointer);
+			debug(message);
+
 			// the last bit position move exceeds
 			// data buffer range
 			// this indicates that the current
 			// result is the return value
 			if(byte_pointer >= data_length){
+				debug("EOF");
 				ret = result;
 				break;
 			}
@@ -132,6 +138,9 @@ int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
 			uint16_t mask = 0x0001 << bit_pointer;
 			working_buffer |= (uint16_t) (data[byte_pointer] & mask) >> bit_pointer;
 			
+			sprintf(message, "working buffer %x", working_buffer);
+			debug(message);			
+
 		}//end inner while
 
 		dividend = working_buffer;
@@ -166,5 +175,7 @@ void main(){
 	int16_t polynomial = 0b1001000000100001; //X^16+X^12+X^5 +1
 	data_buffer[0] = 'a';
 	int16_t crc_code = crc_alg(data_buffer, 3, polynomial);
-	printf("mats big code %x\n", crc_code);
+	char message[40];
+	sprintf(message, "crc code: %x", crc_code);
+	info(message);	
 }
