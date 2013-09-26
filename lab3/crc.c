@@ -40,7 +40,7 @@ int16_t crc_gen(char* data, int16_t gen_poly){
 
 }
 
-int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
+uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 
 	char message[40];
 	sprintf(message, "%d bytes using polynomial %x", data_length, gen_poly);
@@ -58,17 +58,21 @@ int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
 		return;
 	}
 
-	// load first 16 bits into dividend
-	int16_t dividend = (data[0] << 8) | data[1];
-	int16_t divisor = gen_poly;
+	// load first 17 bits into dividend
+	uint32_t dividend = // 17 bits
+		(data[0] << 9) | // 8 bits from byte 0
+		(data[1] << 1) | // 8 bits from byte 1
+		((data[2] >> 7) & 0x01); //1 bit from byte 2
+	uint32_t divisor = gen_poly; //17 bits
 
 	sprintf(message, "dividend %x", dividend);
 	debug(message);
 
 	int byte_pointer = 2;
-	int bit_pointer = 7;
+	int bit_pointer = 6;
 
-	int16_t ret;
+	//17 bit buffer
+	uint32_t ret;
 
 	while(byte_pointer < data_length){
 		
@@ -79,11 +83,11 @@ int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
 		//sll and pop next bit until
 		//MSB of dividend is one or byte_pointer passed maximum
 
-		uint16_t result = dividend ^ divisor;
-		uint16_t working_buffer = result;
+		uint32_t result = dividend ^ divisor;
+		uint32_t working_buffer = result;
 		
 		//do until 1 in MSB
-		while(!(working_buffer >> 15)){
+		while(!(working_buffer >> 16)){
 			// move state to next bit
 			bit_pointer--;
 			if(bit_pointer < 0){
@@ -109,8 +113,8 @@ int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
 			// isolate the bit_pointer bit and OR it into
 			// LSB of working buffer
 			working_buffer <<= 1;
-			uint16_t mask = 0x0001 << bit_pointer;
-			working_buffer |= (uint16_t) (data[byte_pointer] & mask) >> bit_pointer;
+			uint32_t mask = 0x00000001 << bit_pointer;
+			working_buffer |= (uint32_t) (data[byte_pointer] & mask) >> bit_pointer;
 			
 			sprintf(message, "working buffer %x", working_buffer);
 			debug(message);			
@@ -146,9 +150,9 @@ void main(){
 	//init_data_buffer();
 	//read_data();	
 	char* data_buffer = (char*) calloc(3, sizeof(char));
-	int16_t polynomial = 0b1001000000100001; //X^16+X^12+X^5 +1
+	uint32_t polynomial = 0b10001000000100001; //X^16+X^12+X^5 +1
 	data_buffer[0] = 'a';
-	int16_t crc_code = crc_alg(data_buffer, 3, polynomial);
+	uint32_t crc_code = crc_alg(data_buffer, 3, polynomial);
 	char message[40];
 	sprintf(message, "crc code: %x", crc_code);
 	info(message);	
