@@ -36,34 +36,8 @@ void read_data(){
 }
 
 int16_t crc_gen(char* data, int16_t gen_poly){
-	int i;
-	for(i=0; i<input_length+2; i++){
-		// maintain 16 bit result buffer
-		// start by xor generator polynomial
-		// pull bits from the data such that MSB has a 1
-		// xor result and data buff
 		
-		// steps to interpret array as a bitstream
-		// shift and mask to create a single 16 bit continuous 
-		// chunk out of 3 bytes
-		int j;
-		for(j=0; j<8; j++){
-			// upper bits of 8 MSB
-			unsigned char seg_1 = (data_buffer[i] << j) << 8;
-			// lower part of 8 MSB
-			unsigned char seg_2 = (((unsigned) data_buffer[i+1]) >> (8 - j)) << 8;
-			// upper part of 8 LSB
-			unsigned char seg_3 = data_buffer[i+1] << j;
-			// lower part of 8 LSB
-			unsigned char seg_4 = data_buffer[i+3] & (0xFF ^ (0xFF << j));
 
-			uint16_t chunk = seg_1 | seg_2 | seg_3 | seg_4;
-
-			uint16_t result = chunk ^ gen_poly;
-
-			// deconstruct result into the correct offsets across 3 bytes
-		}
-	}
 }
 
 int16_t crc_alg(char* data, int data_length, int16_t gen_poly){
