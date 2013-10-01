@@ -44,18 +44,18 @@ void clear_data();
 //    char* data the data to generate the CRC for
 //    int16_t crc return pointer for the generated crc
 //    returns the calculated crc
-int16_t crc_gen(char* data, int16_t gen_poly);
+uint32_t crc_gen(char* data, int data_length, uint32_t gen_poly);
 
 // check if the crc is valid for the given data
 //    char* data the data to check crc against
 //    int16_t crc crc code used to check with
 //    returns 1 if valid 0 if invalid
-int crc_check(char* data, int16_t crc);
+int crc_check(char* data, int data_length,  uint32_t gen_poly);
 
 // compute crc checksum
 uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly);
 
-//introduce error into data with probability p
+//introduces error bits into data with probability p
 void IntroduceError(char *data, double p);
 
 //////////////////////////////////////////

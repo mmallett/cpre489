@@ -11,7 +11,7 @@
 
 void init_data_buffer(){
 	//overcommit on memory to stop weird things from happening..
-	data_buffer = (char*) malloc((DATA_BUFFER_SIZE + 20) * sizeof(char));
+	data_buffer = (char*) calloc((DATA_BUFFER_SIZE + 20) , sizeof(char));
 }
 
 void read_data(){
@@ -35,9 +35,21 @@ void read_data(){
 	return;
 }
 
-int16_t crc_gen(char* data, int16_t gen_poly){
-		
+uint32_t crc_gen(char* data, int data_length, uint32_t gen_poly){
+	return crc_alg(data, data_length, gen_poly);
+}
 
+int crc_check(char* data, int data_length, uint32_t gen_poly)
+{	
+	uint32_t code = crc_alg(data, data_length, gen_poly);
+	char message[40];
+	sprintf(message, "check code %x", code);
+	info(message);
+	
+	if(code == 0)
+		return 1;
+	else
+		return 0;
 }
 
 uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
@@ -129,6 +141,7 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 
 		result = working_buffer ^ divisor;
 		working_buffer = result;
+//		printf("testing\n");
 			
 	}//end outer while
 END:
@@ -180,13 +193,34 @@ void error(char* message){
 }
 
 void main(){
-	//init_data_buffer();
-	//read_data();	
-	char* data_buffer = (char*) calloc(3, sizeof(char));
+	init_data_buffer();
+	read_data();	
+	//char* data_buffer = (char*) calloc(3, sizeof(char));
 	uint32_t polynomial = 0b10001000000100001; //X^16+X^12+X^5 +1
-	data_buffer[0] = 'a';
-	uint32_t crc_code = crc_alg(data_buffer, 3, polynomial);
+	//data_buffer[0] = 'a';
+
+	int data_length = input_length+2;
+	uint32_t crc_code = crc_gen(data_buffer, data_length, polynomial);
+
 	char message[40];
 	sprintf(message, "crc code: %x", crc_code);
-	info(message);	
+	info(message);
+
+
+	data_buffer[data_length-2] = (crc_code >> 8) & 0x000000FF;
+	data_buffer[data_length-1] = crc_code & 0x000000FF;
+	//add null terminator at end of code
+	data_buffer[data_length] = '\0';
+	printf("original: %s\n", data_buffer);
+	//IntroduceError(data_buffer, .1); //Will introduce error into data with probability .0001
+	printf("After Introduce Error: %s\n", data_buffer);
+
+	if(crc_check(data_buffer, data_length, polynomial) == 0)
+	{
+		printf("error found\n");
+	}
+	else
+	{
+		printf("no error found\n");
+	}	
 }
