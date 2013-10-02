@@ -35,11 +35,11 @@ void read_data(){
 	return;
 }
 
-uint32_t crc_gen(char* data, int data_length, uint32_t gen_poly){
+uint32_t crc_gen(unsigned char* data, int data_length, uint32_t gen_poly){
 	return crc_alg(data, data_length, gen_poly);
 }
 
-int crc_check(char* data, int data_length, uint32_t gen_poly)
+int crc_check(unsigned char* data, int data_length, uint32_t gen_poly)
 {	
 	uint32_t code = crc_alg(data, data_length, gen_poly);
 	char message[40];
@@ -52,10 +52,13 @@ int crc_check(char* data, int data_length, uint32_t gen_poly)
 		return 0;
 }
 
-uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
+uint32_t crc_alg(unsigned char* data, int data_length, uint32_t gen_poly){
 
 	char message[40];
 	sprintf(message, "%d bytes using polynomial %x", data_length, gen_poly);
+	debug(message);
+
+	sprintf(message, "first 3 bytes %x%x%x", data[0], data[1], data[2]);
 	debug(message);
 
 	// error check	
@@ -144,7 +147,7 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 
 
 		sprintf(message, "result of 'divide' %x", result);
-		debug(message);
+//		debug(message);
 //		printf("testing\n");
 			
 	}//end outer while
@@ -211,20 +214,20 @@ void main(){
 	info(message);
 
 
-//	data_buffer[data_length-2] = (crc_code >> 8) & 0x000000FF;
-//	data_buffer[data_length-1] = crc_code & 0x000000FF;
+	data_buffer[data_length-2] = (crc_code >> 8) & 0x000000FF;
+	data_buffer[data_length-1] = crc_code & 0x000000FF;
 	//add null terminator at end of code
-//	data_buffer[data_length] = '\0';
-//	printf("original: %s\n", data_buffer);
-	//IntroduceError(data_buffer, .1); //Will introduce error into data with probability .0001
-//	printf("After Introduce Error: %s\n", data_buffer);
+	data_buffer[data_length] = '\0';
+	printf("original: %s\n", data_buffer);
+//	IntroduceError(data_buffer, .1); //Will introduce error into data with probability .0001
+	printf("After Introduce Error: %s\n", data_buffer);
 
-/*	if(crc_check(data_buffer, data_length, polynomial) == 0)
+	if(crc_check(data_buffer, data_length, polynomial) == 0)
 	{
 		printf("error found\n");
 	}
 	else
 	{
 		printf("no error found\n");
-	}	*/
+	}	
 }
