@@ -59,16 +59,16 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 	debug(message);
 
 	// error check	
-	int data_mem_size = sizeof(data) / sizeof(char);
+/*	int data_mem_size = sizeof(data) / sizeof(char);
 	if(data_mem_size < data_length){
 		sprintf(message, "size of data buffer (%d) is less than data_length (%d)", data_mem_size, data_length);
 		error(message);
 		return;
-	}
-	if(data_length < 2){
+	}*/
+	/*if(data_length < 2){
 		error("can't compute crc16 with less than 16 bits!");
 		return;
-	}
+	}*/
 
 	// load first 17 bits into dividend
 	uint32_t dividend =  // 17 bits
@@ -77,7 +77,7 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 		((((uint32_t)data[2]) >> 7) & 0x01); //1 bit from byte 2
 	uint32_t divisor = gen_poly; //17 bits
 
-	sprintf(message, "dividend %x", dividend);
+	sprintf(message, "dividend %05x", dividend);
 	debug(message);
 
 	int byte_pointer = 2;
@@ -124,7 +124,7 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 //			sprintf(message, "bit %d in byte %d is %x", bit_pointer, byte_pointer, the_byte);
 //			debug(message);
 			
-			sprintf(message, "working buffer %x", working_buffer);
+			sprintf(message, "working buffer %05x", working_buffer);
 			debug(message);			
 
 			// move state to next bit
@@ -138,14 +138,18 @@ uint32_t crc_alg(char* data, int data_length, uint32_t gen_poly){
 		}//end inner while
 
 		//do the 'divide'
-
+		
 		result = working_buffer ^ divisor;
 		working_buffer = result;
+
+
+		sprintf(message, "result of 'divide' %x", result);
+		debug(message);
 //		printf("testing\n");
 			
 	}//end outer while
 END:
-	return result & 0x0000FFFF;
+	return working_buffer & 0x0000FFFF;
 }
 
 /*****************************************************************************/
@@ -207,20 +211,20 @@ void main(){
 	info(message);
 
 
-	data_buffer[data_length-2] = (crc_code >> 8) & 0x000000FF;
-	data_buffer[data_length-1] = crc_code & 0x000000FF;
+//	data_buffer[data_length-2] = (crc_code >> 8) & 0x000000FF;
+//	data_buffer[data_length-1] = crc_code & 0x000000FF;
 	//add null terminator at end of code
-	data_buffer[data_length] = '\0';
-	printf("original: %s\n", data_buffer);
+//	data_buffer[data_length] = '\0';
+//	printf("original: %s\n", data_buffer);
 	//IntroduceError(data_buffer, .1); //Will introduce error into data with probability .0001
-	printf("After Introduce Error: %s\n", data_buffer);
+//	printf("After Introduce Error: %s\n", data_buffer);
 
-	if(crc_check(data_buffer, data_length, polynomial) == 0)
+/*	if(crc_check(data_buffer, data_length, polynomial) == 0)
 	{
 		printf("error found\n");
 	}
 	else
 	{
 		printf("no error found\n");
-	}	
+	}	*/
 }
