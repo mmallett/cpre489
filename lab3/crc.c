@@ -54,7 +54,7 @@ uint32_t crc_gen(unsigned char* data, int data_length, uint32_t gen_poly){
 int crc_check(unsigned char* data, int data_length, uint32_t gen_poly)
 {	
 	uint32_t code = crc_alg(data, data_length, gen_poly);
-	char message[40];
+	char message[4000];
 	sprintf(message, "check code %x", code);
 	info(message);
 	
@@ -67,7 +67,7 @@ int crc_check(unsigned char* data, int data_length, uint32_t gen_poly)
 // compute crc checksum
 uint32_t crc_alg(unsigned char* data, int data_length, uint32_t gen_poly){
 
-	char message[40];
+	char message[4000];
 	sprintf(message, "%d bytes using polynomial %x", data_length, gen_poly);
 	debug(message);
 
@@ -230,7 +230,7 @@ void main(){
 	int data_length = input_length+2;
 	uint32_t crc_code = crc_gen(data_buffer, data_length, polynomial);
 
-	char message[40];
+	char message[4000];
 	sprintf(message, "crc code: %x", crc_code);
 	info(message);
 
