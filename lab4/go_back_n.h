@@ -11,7 +11,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
-#include "crc.h"
+//#include "crc.h"
 
 
 //function definitions for sender and receiver threads
@@ -31,6 +31,8 @@ typedef struct{
 #define NAK_TYPE 2
 
 #define DATA_TYPE 3
+
+#define BUFFER_SIZE 500
 
 unsigned char* serialize_packet(packet);
 
