@@ -13,7 +13,6 @@ int main(){
 	send_to_receive_buffer = (char*) malloc(BUFFER_SIZE * sizeof(char));
 	receive_to_send_buffer = (char*) malloc(BUFFER_SIZE * sizeof(char));
 
-
 	//init the alphabet
 	alphabet = (char*) malloc(26 * sizeof(char));
 	int i;
@@ -46,10 +45,25 @@ void *sender(void* arg){
 	unsigned char r_next;
 
 	//write initial three to sender to receiver buffer
+	pthread_mut_lock(&send_to_receive_mut);
+	//begin critical section
+	//write some stuff
+	
+	//end critical section
+	//release lock, signal other threads
+	pthread_mut_unlock(&send_to_receive_mut);
+	pthread_cond_broadcast(&sender_cv);
 
 	while(r_next < 13){
 
 		//wait until something in receiver to sender buffer
+		pthread_cond_wait(&receiver_cv, &receive_to_send_mut);
+		//clear to read, have lock
+		
+		//read the buffer
+		
+		pthread_mut_unlock(&receive_to_send_mut);
+		
 
 		//ACK or NAK??????
 		
@@ -63,7 +77,15 @@ void *sender(void* arg){
 		//	else
 		//		discard packet
 
-
+		//build the packet above, transmission here
+		pthread_mut_lock(&send_to_receive_mut);
+        	//begin critical section
+	        //write some stuff        
+        	//end critical section
+	        //release lock, signal other threads
+	       
+		pthread_mut_unlock(&send_to_receive_mut);
+       	        pthread_cond_broadcast(&sender_cv);
 	}
 
 }
@@ -75,9 +97,12 @@ void *receiver(void* arg){
 	while(r_next < 13){
 		
 		//wait for something in sender to receiver buffer
+		pthread_cond_wait(&sender_cv, &send_to_receive_mut);
 
 		//crc check for error
 		
+		pthread_mut_unlock(&send_to_receive_mut);
+
 		//if error
 		//	send NAK with r_next
 	
@@ -89,9 +114,14 @@ void *receiver(void* arg){
 		//		report data to program
 		//		r_next ++
 		//		ACK r_next
+		
+		//build packet above send below
+		pthread_mut_lock(&receive_to_send_mut);
+		
+		//write packet
 
-
-
+		pthread_mut_unlock(&receive_to_send_mut);
+		pthread_cond_broadcast(&sender_cv);
 	}
 
 }
