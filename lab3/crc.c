@@ -9,11 +9,13 @@
 
 #include "crc.h"
 
+// construct the data buffer
 void init_data_buffer(){
 	//overcommit on memory to stop weird things from happening..
 	data_buffer = (char*) calloc((DATA_BUFFER_SIZE + 20) , sizeof(char));
 }
 
+// read data from keyboard into data buffer
 void read_data(){
 	prompt("begin typing data");
 	// read DATA_BUFFER_SIZE characters from STD_IN
@@ -35,10 +37,20 @@ void read_data(){
 	return;
 }
 
+// generate a crc field for a given data buffer
+//     char* data the data to generate the CRC for
+//     int16_t crc return pointer for the generated crc
+//     returns the calculated crc
+//
 uint32_t crc_gen(unsigned char* data, int data_length, uint32_t gen_poly){
 	return crc_alg(data, data_length, gen_poly);
 }
 
+// check if the crc is valid for the given data
+//     char* data the data to check crc against
+//     int16_t crc crc code used to check with
+//     returns 1 if valid 0 if invalid
+//
 int crc_check(unsigned char* data, int data_length, uint32_t gen_poly)
 {	
 	uint32_t code = crc_alg(data, data_length, gen_poly);
@@ -52,6 +64,7 @@ int crc_check(unsigned char* data, int data_length, uint32_t gen_poly)
 		return 0;
 }
 
+// compute crc checksum
 uint32_t crc_alg(unsigned char* data, int data_length, uint32_t gen_poly){
 
 	char message[40];
@@ -181,31 +194,39 @@ void IntroduceError(char *data, double p)
 	}
 }
 
+//formats input prompt printing
 void prompt(char* message){
 	printf("crc>> %s\n", message);
 }
 
+//formats information printing
 void info(char* message){
 	printf("crc [info] %s\n", message);
 }
 
+//formats debug printing, toggled off by setting DEBUG = 0
 void debug(char* message){
 	if(DEBUG){
 		printf("crc [debug] %s\n", message);
 	}
 }
 
+//formats error printing
 void error(char* message){
 	printf("crc [error] %s\n", message);
 }
 
 void main(){
+	// get transmission data
 	init_data_buffer();
 	read_data();	
+
 	//char* data_buffer = (char*) calloc(3, sizeof(char));
+	// the generator polynomial
 	uint32_t polynomial = 0b10001000000100001; //X^16+X^12+X^5 +1
 	//data_buffer[0] = 'a';
 
+	//get the crc code for this transmission data buffer
 	int data_length = input_length+2;
 	uint32_t crc_code = crc_gen(data_buffer, data_length, polynomial);
 
@@ -213,15 +234,35 @@ void main(){
 	sprintf(message, "crc code: %x", crc_code);
 	info(message);
 
-
+	// place the crc code into the last 2 bytes of the data buffer
 	data_buffer[data_length-2] = (crc_code >> 8) & 0x000000FF;
 	data_buffer[data_length-1] = crc_code & 0x000000FF;
 	//add null terminator at end of code
 	data_buffer[data_length] = '\0';
-	printf("original: %s\n", data_buffer);
-//	IntroduceError(data_buffer, .1); //Will introduce error into data with probability .0001
-	printf("After Introduce Error: %s\n", data_buffer);
+	
+	sprintf(message, "Original: %s", data_buffer);
+	info(message);	
 
+	//corruption by XOR
+
+	unsigned char xor1 = 0x01; // break the polynomial into 3 bytes
+	unsigned char xor2 = 0b00010000;
+	unsigned char xor3 = 0b00100001;
+
+	data_buffer[0] ^= xor1;
+	data_buffer[1] ^= xor2;
+	data_buffer[2] ^= xor3;
+
+	// corruption by introduce error function
+	//IntroduceError(data_buffer, 1); //Will introduce error into data with probability .0001
+	
+	sprintf(message, "After Introduce Error: %s", data_buffer);
+	info(message);
+
+	//run crc check
+	//the result is somewhat counterintuitive
+	//return 1 means no error detected
+	//return 0 means error detected
 	if(crc_check(data_buffer, data_length, polynomial) == 0)
 	{
 		printf("error found\n");
