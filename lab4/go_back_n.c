@@ -5,7 +5,7 @@
  * go back n ARQ protocol implementation
  */
 
-#include "go_back_n.c"
+#include "go_back_n.h"
 
 int main(){
 
@@ -18,7 +18,7 @@ int main(){
 	alphabet = (char*) malloc(26 * sizeof(char));
 	int i;
 	for(i=0; i<26; i++){
-		alphabet[i] = 'a' + i;
+		alphabet[i] = 'A' + i;
 	}
 
 	//init thread stuff
@@ -35,8 +35,8 @@ int main(){
 	pthread_create(&receiver_tid, NULL, receiver, NULL);
 
 	//join the 2 threads
-	pthread_join(&sender_tid, NULL);
-	pthread_join(&receiver_tid, NULL);
+	pthread_join(sender_tid, NULL);
+	pthread_join(receiver_tid, NULL);
 
 	return 0;
 }
