@@ -216,7 +216,7 @@ void error(char* message){
 	printf("crc [error] %s\n", message);
 }
 
-void main(){
+/*void main(){
 	// get transmission data
 	init_data_buffer();
 	read_data();	
@@ -271,4 +271,4 @@ void main(){
 	{
 		printf("no error found\n");
 	}	
-}
+}*/

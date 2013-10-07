@@ -45,13 +45,13 @@ void *sender(void* arg){
 	unsigned char r_next;
 
 	//write initial three to sender to receiver buffer
-	pthread_mut_lock(&send_to_receive_mut);
+	pthread_mutex_lock(&send_to_receive_mut);
 	//begin critical section
 	//write some stuff
 	
 	//end critical section
 	//release lock, signal other threads
-	pthread_mut_unlock(&send_to_receive_mut);
+	pthread_mutex_unlock(&send_to_receive_mut);
 	pthread_cond_broadcast(&sender_cv);
 
 	while(r_next < 13){
@@ -62,7 +62,7 @@ void *sender(void* arg){
 		
 		//read the buffer
 		
-		pthread_mut_unlock(&receive_to_send_mut);
+		pthread_mutex_unlock(&receive_to_send_mut);
 		
 
 		//ACK or NAK??????
@@ -77,14 +77,14 @@ void *sender(void* arg){
 		//	else
 		//		discard packet
 
-		//build the packet above, transmission here
-		pthread_mut_lock(&send_to_receive_mut);
+		//build the expacket above, transmission here
+		pthread_mutex_lock(&send_to_receive_mut);
         	//begin critical section
 	        //write some stuff        
         	//end critical section
 	        //release lock, signal other threads
 	       
-		pthread_mut_unlock(&send_to_receive_mut);
+		pthread_mutex_unlock(&send_to_receive_mut);
        	        pthread_cond_broadcast(&sender_cv);
 	}
 
@@ -101,7 +101,7 @@ void *receiver(void* arg){
 
 		//crc check for error
 		
-		pthread_mut_unlock(&send_to_receive_mut);
+		pthread_mutex_unlock(&send_to_receive_mut);
 
 		//if error
 		//	send NAK with r_next
@@ -116,11 +116,11 @@ void *receiver(void* arg){
 		//		ACK r_next
 		
 		//build packet above send below
-		pthread_mut_lock(&receive_to_send_mut);
-		
+		pthread_mutex_lock(&receive_to_send_mut);
+//change		
 		//write packet
 
-		pthread_mut_unlock(&receive_to_send_mut);
+		pthread_mutex_unlock(&receive_to_send_mut);
 		pthread_cond_broadcast(&sender_cv);
 	}
 

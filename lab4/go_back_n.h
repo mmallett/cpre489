@@ -11,7 +11,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
-//#include "crc.h"
+#include "crc.h"
 
 
 //function definitions for sender and receiver threads
