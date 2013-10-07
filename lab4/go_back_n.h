@@ -10,6 +10,7 @@
 
 #include <pthread.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "crc.h"
 
@@ -34,6 +35,8 @@ typedef struct{
 
 #define BUFFER_SIZE 500
 
+#define N 3
+
 unsigned char* serialize_packet(packet);
 
 unsigned char* alphabet;
@@ -57,3 +60,5 @@ pthread_mutex_t receive_to_send_mut;
 
 //condition variabel that receiver has completed its buffer work
 pthread_cond_t receiver_cv;
+
+uint32_t polynomial = 0b10001000000100001; //X^16+X^12+X^5 +1
