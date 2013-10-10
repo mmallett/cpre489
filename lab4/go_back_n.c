@@ -105,6 +105,10 @@ void *sender(void* arg){
 	
 	unsigned char r_last = 0;
 
+	int packet_received = 0;
+
+	packet* receivedPacket;
+
 	packet* currentPacket;
 
 	unsigned char* working_buffer;
@@ -134,14 +138,15 @@ void *sender(void* arg){
 	//end critical section
 	//release lock, signal other threads
 	pthread_mutex_unlock(&send_to_receive_mut);
-	pthread_cond_broadcast(&sender_cv);
+	//pthread_cond_broadcast(&sender_cv);
 	
 	//memcpy(send_to_receive_buffer, working_buffer, 18);
 
 	while(r_last < 13){
 
 		//wait until something in receiver to sender buffer
-		pthread_cond_wait(&receiver_cv, &receive_to_send_mut);
+		//pthread_cond_wait(&receiver_cv, &receive_to_send_mut);
+		//pthread_mutex_lock(&receive_to_send_mut);
 		//clear to read, have lock
 
 		//read the buffer
@@ -152,7 +157,28 @@ void *sender(void* arg){
                 //'pop' the packet from the queue
       //          memmove(receive_to_send_buffer, receive_to_send_buffer + 6, 12);
 		
-		pthread_mutex_unlock(&receive_to_send_mut);
+		//pthread_mutex_unlock(&receive_to_send_mut);
+
+		packet_received = 0;
+
+		//'pop' the packet from the queue
+		//	memmove(send_to_receive_buffer, send_to_receive_buffer + 6, 12);
+
+		packet* receivedPacket;
+
+		while(packet_received == 0)
+		{
+
+			pthread_mutex_lock(&receive_to_send_mut);
+		
+			if(receive_to_send_buffer.size != 0)
+			{
+				receivedPacket = removePacket(&receive_to_send_buffer);
+				packet_received = 1;
+				printf("ACK received\n");
+			}
+			pthread_mutex_unlock(&receive_to_send_mut);
+		}
 		
 
 		//ACK or NAK??????
@@ -185,36 +211,54 @@ void *sender(void* arg){
 
 void *receiver(void* arg){
 
+	int packet_received = 0;
+
 	unsigned char r_next = 0;
 
 	unsigned char * working_buffer = (unsigned char*) malloc(20 * sizeof(char));
 
 	while(r_next < 13){
-		
 		//wait for something in sender to receiver buffer
-		pthread_cond_wait(&sender_cv, &send_to_receive_mut);
+		//pthread_cond_wait(&sender_cv, &send_to_receive_mut);
 
 //		memcpy(working_buffer, send_to_receive_buffer, 6);
 
 		// MAKE THIS USE LINKED LIST
 
+		packet_received = 0;
+
 		//'pop' the packet from the queue
 	//	memmove(send_to_receive_buffer, send_to_receive_buffer + 6, 12);
 
-		int packet_number = working_buffer[1];
+		packet* receivedPacket;
+
+		while(packet_received == 0)
+		{
+
+			pthread_mutex_lock(&send_to_receive_mut);
+		
+			if(send_to_receive_buffer.size != 0)
+			{
+				receivedPacket = removePacket(&send_to_receive_buffer);
+				packet_received = 1;
+			}
+			pthread_mutex_unlock(&send_to_receive_mut);
+		}
+
+		int packet_number = receivedPacket->packet_number;
 
 		//crc check for error
-		int good = crc_check(working_buffer, 6, polynomial);
-		
-		pthread_mutex_unlock(&send_to_receive_mut);
+		int good = crc_check(serialize_packet(*receivedPacket), 6, polynomial);
 
+		packet* currentPacket = (packet*) malloc(sizeof(packet));
+		
 		//if error
 		//	send NAK with r_next
 		if(!good){
-			working_buffer[0] = NAK_TYPE;
-			working_buffer[1] = r_next;
-			working_buffer[2] = 0x00;
-			working_buffer[3] = 0x00;
+			currentPacket->packet_type = NAK_TYPE;
+			currentPacket->packet_number = r_next;
+			currentPacket->data1 = 0x00;
+			currentPacket->data2 = 0x00;
 		}
 	
 		//if !error
@@ -228,22 +272,22 @@ void *receiver(void* arg){
 		else{
 			if(packet_number == r_next){
 				//report buffer[2] buffer[3]
-				working_buffer[0] = ACK_TYPE;
-	                        working_buffer[1] = ++r_next;
-				working_buffer[2] = 0x00;
-				working_buffer[3] = 0x00;
+				currentPacket->packet_type = ACK_TYPE;
+	      		currentPacket->packet_number = ++r_next;
+				currentPacket->data1 = 0x00;
+				currentPacket->data2 = 0x00;
+				printf("receive to send packet type %d packet # %d\n", currentPacket->packet_type, currentPacket->packet_number);
 			}
 			else{
-				working_buffer[0] = NAK_TYPE;
-				working_buffer[1] = r_next;
-				working_buffer[2] = 0x00;
-				working_buffer[3] = 0x00;
+				currentPacket->packet_type = NAK_TYPE;
+				currentPacket->packet_number = r_next;
+				currentPacket->data1 = 0x00;
+				currentPacket->data2 = 0x00;
 			}	
 		}
 
-		uint16_t crc_code = crc_gen(working_buffer, 6, polynomial);
-		working_buffer[4] = (crc_code >> 8) & 0x00FF;
-		working_buffer[5] = crc_code & 0x00FF;
+		uint16_t crc_code = crc_gen(serialize_packet(*currentPacket), 6, polynomial);
+		currentPacket->crc_code = crc_code;
 		
 		//build packet above send below
 		pthread_mutex_lock(&receive_to_send_mut);
@@ -252,9 +296,10 @@ void *receiver(void* arg){
 //		memcpy(receive_to_send_buffer, working_buffer, 6);
 
 		// ADD TO LINK LIST
+		addPacket(&receive_to_send_buffer, currentPacket);
 
 		pthread_mutex_unlock(&receive_to_send_mut);
-		pthread_cond_broadcast(&sender_cv);
+		//pthread_cond_broadcast(&sender_cv);
 	}
 
 	return NULL;
