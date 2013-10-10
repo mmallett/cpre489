@@ -74,18 +74,6 @@ uint32_t crc_alg(unsigned char* data, int data_length, uint32_t gen_poly){
 	sprintf(message, "first 3 bytes %x%x%x", data[0], data[1], data[2]);
 	debug(message);
 
-	// error check	
-/*	int data_mem_size = sizeof(data) / sizeof(char);
-	if(data_mem_size < data_length){
-		sprintf(message, "size of data buffer (%d) is less than data_length (%d)", data_mem_size, data_length);
-		error(message);
-		return;
-	}*/
-	/*if(data_length < 2){
-		error("can't compute crc16 with less than 16 bits!");
-		return;
-	}*/
-
 	// load first 17 bits into dividend
 	uint32_t dividend =  // 17 bits
 		(((uint32_t)data[0]) << 9) | // 8 bits from byte 0
@@ -196,24 +184,24 @@ void IntroduceError(char *data, double p)
 
 //formats input prompt printing
 void prompt(char* message){
-	printf("crc>> %s\n", message);
+	//printf("crc>> %s\n", message);
 }
 
 //formats information printing
 void info(char* message){
-	printf("crc [info] %s\n", message);
+	//printf("crc [info] %s\n", message);
 }
 
 //formats debug printing, toggled off by setting DEBUG = 0
 void debug(char* message){
-	if(DEBUG){
+	/*if(DEBUG){
 		printf("crc [debug] %s\n", message);
-	}
+	}*/
 }
 
 //formats error printing
 void error(char* message){
-	printf("crc [error] %s\n", message);
+	//printf("crc [error] %s\n", message);
 }
 
 /*void main(){

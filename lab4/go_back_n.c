@@ -5,16 +5,24 @@
  * go back n ARQ protocol implementation
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <pthread.h>
+#include <stdint.h>
+#include <string.h>
+
+#include "crc.h"
 #include "go_back_n.h"
 
 int main(){
 
 	//init the buffers send_to_rec rec_to_send
-	send_to_receive_buffer = (char*) malloc(BUFFER_SIZE * sizeof(char));
-	receive_to_send_buffer = (char*) malloc(BUFFER_SIZE * sizeof(char));
+	send_to_receive_buffer = generate_linkedList(); //= (char*) malloc(BUFFER_SIZE * sizeof(char));
+	receive_to_send_buffer = generate_linkedList(); //(char*) malloc(BUFFER_SIZE * sizeof(char));
 
 	//init the alphabet
-	alphabet = (char*) malloc(26 * sizeof(char));
+	alphabet = (unsigned char*) malloc(26 * sizeof(char));
 	int i;
 	for(i=0; i<26; i++){
 		alphabet[i] = 'A' + i;
@@ -38,7 +46,7 @@ int main(){
 	pthread_join(receiver_tid, NULL);
 
 	return 0;
-}
+}//end main
 
 linkedList generate_linkedList(){
 	linkedList newLinkedList;
@@ -48,48 +56,48 @@ linkedList generate_linkedList(){
 	return newLinkedList;
 }
 
-void addPacket(linkedList*, packet*){
-	if(linkedList->size == 0)
+void addPacket(linkedList* list, packet* pak){
+	if(list->size == 0)
 	{
-		linkedList->head = packet;
-		linkedList->tail = packet;
-		packet->next = NULL;
-		linkedList->size++;
+		list->head = pak;
+		list->tail = pak;
+		pak->next = NULL;
+		list->size++;
 	}
 	else
 	{
-		linkedList->tail->next = packet;
-		linkedList->tail = packet;
-		packet->next = NULL;
-		linkedList->size++;
+		list->tail->next = pak;
+		list->tail = pak;
+		pak->next = NULL;
+		list->size++;
 	}
 }
 
 //returns NULL if element was not able to be removed.
-int removePacket(linkedList*) {
-	if(linkedList->size == 0)
+packet* removePacket(linkedList* list) {
+	if(list->size == 0)
 	{
 		return NULL;
 	}
 	else
 	{
 		packet* returnPacket;
-		returnPacket = linkedList->head;
-		linkedList->head = linkedList->head->next;
-		linkedList->size--;
+		returnPacket = list->head;
+		list->head = list->head->next;
+		list->size--;
 		return returnPacket;
 	}
 }
 
-unsigned char* serialize_packet(packet)
+unsigned char* serialize_packet(packet mypacket)
 {
-	unsigned char* returnBuffer = (char*) malloc(6 * sizeof(char));
-	returnBuffer[0] = packet.packet_type;
-	returnBuffer[1] = packet.packet_number;
-	returnBuffer[2] = packet.data1;
-	returnBuffer[3] = packet.data2;
-	returnBuffer[4] = (packet.crc_code >> 8) & 0x00FF;
-	returnBuffer[5] = packet.crc_code & 0x00FF;
+	unsigned char* returnBuffer = (unsigned char*) malloc(6 * sizeof(char));
+	returnBuffer[0] = mypacket.packet_type;
+	returnBuffer[1] = mypacket.packet_number;
+	returnBuffer[2] = mypacket.data1;
+	returnBuffer[3] = mypacket.data2;
+	returnBuffer[4] = (mypacket.crc_code >> 8) & 0x00FF;
+	returnBuffer[5] = mypacket.crc_code & 0x00FF;
 	return returnBuffer;
 }
 
@@ -137,10 +145,12 @@ void *sender(void* arg){
 		//clear to read, have lock
 
 		//read the buffer
-		memcpy(working_buffer, receive_to_send_buffer, 6);
+		//memcpy(working_buffer, receive_to_send_buffer, 6);
+
+		// MAKE THESE USE LINKED LIST
 
                 //'pop' the packet from the queue
-                memmove(receive_to_send_buffer, receive_to_send_buffer + 6, 12);
+      //          memmove(receive_to_send_buffer, receive_to_send_buffer + 6, 12);
 		
 		pthread_mutex_unlock(&receive_to_send_mut);
 		
@@ -169,23 +179,27 @@ void *sender(void* arg){
        	        pthread_cond_broadcast(&sender_cv);
 	}
 
-}
+	return NULL;
+
+}//end sender
 
 void *receiver(void* arg){
 
 	unsigned char r_next = 0;
 
-	unsigned char * working_buffer = (char*) malloc(20 * sizeof(char));
+	unsigned char * working_buffer = (unsigned char*) malloc(20 * sizeof(char));
 
 	while(r_next < 13){
 		
 		//wait for something in sender to receiver buffer
 		pthread_cond_wait(&sender_cv, &send_to_receive_mut);
 
-		memcpy(working_buffer, send_to_receive_buffer, 6);
+//		memcpy(working_buffer, send_to_receive_buffer, 6);
+
+		// MAKE THIS USE LINKED LIST
 
 		//'pop' the packet from the queue
-		memmove(send_to_receive_buffer, send_to_receive_buffer + 6, 12);
+	//	memmove(send_to_receive_buffer, send_to_receive_buffer + 6, 12);
 
 		int packet_number = working_buffer[1];
 
@@ -235,10 +249,14 @@ void *receiver(void* arg){
 		pthread_mutex_lock(&receive_to_send_mut);
 		
 		//write packet
-		memcpy(receive_to_send_buffer, working_buffer, 6);
+//		memcpy(receive_to_send_buffer, working_buffer, 6);
+
+		// ADD TO LINK LIST
 
 		pthread_mutex_unlock(&receive_to_send_mut);
 		pthread_cond_broadcast(&sender_cv);
 	}
 
-}
+	return NULL;
+
+}//end receiver

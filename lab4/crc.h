@@ -63,7 +63,8 @@ void IntroduceError(char *data, double p);
 // general utilities
 //////////////////////////////////////////
 
-int DEBUG = 0;
+
+//int DEBUG = 0;
 
 //formats input prompt printing
 void prompt(char*);

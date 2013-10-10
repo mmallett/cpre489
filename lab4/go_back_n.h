@@ -5,34 +5,32 @@
  * go back n ARQ definitions
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include <pthread.h>
 #include <stdint.h>
-#include <string.h>
-
-#include "crc.h"
 
 
 //function definitions for sender and receiver threads
 void *sender(void *);
 void *receiver(void *);
 
-typedef struct{
-	packet* next;
+typedef struct packet_t packet;
+
+struct packet_t{
+	struct packet_t* next;
 	unsigned char packet_type;
 	unsigned char packet_number;
 	unsigned char data1;
 	unsigned char data2;
 	uint16_t crc_code;
-} packet;
+};
 
-typedef stuct{
+typedef struct linked_list_t linkedList;
+
+struct linked_list_t{
 	packet* head;
 	packet* tail;
 	int size;
-} linkedList;
+};
 
 #define ACK_TYPE 1 
 
@@ -79,4 +77,4 @@ pthread_mutex_t receive_to_send_mut;
 //condition variabel that receiver has completed its buffer work
 pthread_cond_t receiver_cv;
 
-uint32_t polynomial = 0b10001000000100001; //X^16+X^12+X^5 +1
+uint32_t polynomial = 0b0010001000000100001; //X^16+X^12+X^5 +1
