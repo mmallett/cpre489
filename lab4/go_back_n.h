@@ -20,12 +20,19 @@ void *sender(void *);
 void *receiver(void *);
 
 typedef struct{
+	packet* next;
 	unsigned char packet_type;
 	unsigned char packet_number;
 	unsigned char data1;
 	unsigned char data2;
 	uint16_t crc_code;
 } packet;
+
+typedef stuct{
+	packet* head;
+	packet* tail;
+	int size;
+} linkedList;
 
 #define ACK_TYPE 1 
 
@@ -37,13 +44,24 @@ typedef struct{
 
 #define N 3
 
+//generated linked list to store
+//packets for send_to_receive_buffer and
+//receive_to_send_buffer
+linkedList generate_linkedList();
+
+//adds a packet to end of linked list
+void addPacket(linkedList*, packet*);
+
+//removes a packet from front of linked list
+packet* removePacket(linkedList*);
+
 unsigned char* serialize_packet(packet);
 
 unsigned char* alphabet;
 
 //sender writes to it receiver reads from it
 //sender writes data packets containing alphabet
-unsigned char* send_to_receive_buffer;
+linkedList send_to_receive_buffer;
 
 //lock on send_to_receive_buffer
 pthread_mutex_t send_to_receive_mut;
@@ -53,7 +71,7 @@ pthread_cond_t sender_cv;
 
 //receiver writes to it sender reads from it
 //receiver writes ACK or NAK packets
-unsigned char* receive_to_send_buffer;
+linkedList receive_to_send_buffer;
 
 //lock on receive_to_send_buffer
 pthread_mutex_t receive_to_send_mut;

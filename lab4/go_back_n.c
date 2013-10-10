@@ -40,37 +40,95 @@ int main(){
 	return 0;
 }
 
+linkedList generate_linkedList(){
+	linkedList newLinkedList;
+	newLinkedList.head = NULL;
+	newLinkedList.tail = NULL;
+	newLinkedList.size = 0;
+	return newLinkedList;
+}
+
+void addPacket(linkedList*, packet*){
+	if(linkedList->size == 0)
+	{
+		linkedList->head = packet;
+		linkedList->tail = packet;
+		packet->next = NULL;
+		linkedList->size++;
+	}
+	else
+	{
+		linkedList->tail->next = packet;
+		linkedList->tail = packet;
+		packet->next = NULL;
+		linkedList->size++;
+	}
+}
+
+//returns NULL if element was not able to be removed.
+int removePacket(linkedList*) {
+	if(linkedList->size == 0)
+	{
+		return NULL;
+	}
+	else
+	{
+		packet* returnPacket;
+		returnPacket = linkedList->head;
+		linkedList->head = linkedList->head->next;
+		linkedList->size--;
+		return returnPacket;
+	}
+}
+
+unsigned char* serialize_packet(packet)
+{
+	unsigned char* returnBuffer = (char*) malloc(6 * sizeof(char));
+	returnBuffer[0] = packet.packet_type;
+	returnBuffer[1] = packet.packet_number;
+	returnBuffer[2] = packet.data1;
+	returnBuffer[3] = packet.data2;
+	returnBuffer[4] = (packet.crc_code >> 8) & 0x00FF;
+	returnBuffer[5] = packet.crc_code & 0x00FF;
+	return returnBuffer;
+}
+
 void *sender(void* arg){
 	
 	unsigned char r_last = 0;
 
-	unsigned char * working_buffer = (char*) malloc(30 * sizeof(char));
+	packet* currentPacket;
+
+	unsigned char* working_buffer;
 
 	int alphabet_index = 0;
 
 	int i;
-	for(i=0; i<3; i++){
-		int start = 6 * i;
-		working_buffer[start] = DATA_TYPE;
-		working_buffer[start+1] = r_last+i;
-		working_buffer[start+2] = alphabet[2 * i];
-		working_buffer[start+3] = alphabet[2 * i + 1];
-		uint16_t crc_code = crc_gen(working_buffer + start, 6, polynomial);
-		working_buffer[start+4] = (crc_code >> 8) & 0x00FF;
-		working_buffer[start+5] = crc_code & 0x00FF;
-	}
 
-	//write initial three to sender to receiver buffer
-	pthread_mutex_lock(&send_to_receive_mut);
 	//begin critical section
 	//write some stuff
-	
-	memcpy(send_to_receive_buffer, working_buffer, 18);
-	
+	//write initial three to sender to receiver buffer
+	pthread_mutex_lock(&send_to_receive_mut);
+	for(i=0; i<3; i++){
+		currentPacket = (packet*)malloc(sizeof(packet));
+		currentPacket->packet_type = DATA_TYPE;
+		currentPacket->packet_number = r_last+i;
+		currentPacket->data1 = alphabet[2 * i];
+		currentPacket->data2 = alphabet[2 * i + 1];
+		currentPacket->crc_code = 0;
+		working_buffer = serialize_packet(*currentPacket);
+		uint16_t crc_code = crc_gen(working_buffer, 6, polynomial);
+		currentPacket->crc_code = crc_code;
+		addPacket(&send_to_receive_buffer, currentPacket);
+		free(working_buffer);
+	}
+
 	//end critical section
 	//release lock, signal other threads
 	pthread_mutex_unlock(&send_to_receive_mut);
 	pthread_cond_broadcast(&sender_cv);
+	
+	//memcpy(send_to_receive_buffer, working_buffer, 18);
 
 	while(r_last < 13){
 
