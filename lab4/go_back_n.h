@@ -8,27 +8,25 @@
 #include <pthread.h>
 #include <stdint.h>
 
-
 //function definitions for sender and receiver threads
 void *sender(void *);
 void *receiver(void *);
 
-typedef struct packet_t packet;
+typedef struct packet packet_t;
 
-struct packet_t{
-	struct packet_t* next;
+struct packet{
+	packet_t* next;
 	unsigned char packet_type;
 	unsigned char packet_number;
-	unsigned char data1;
-	unsigned char data2;
+	unsigned char data[2];
 	uint16_t crc_code;
 };
 
-typedef struct linked_list_t linkedList;
+typedef struct linked_list linked_list_t;
 
-struct linked_list_t{
-	packet* head;
-	packet* tail;
+struct linked_list{
+	packet_t* head;
+	packet_t* tail;
 	int size;
 };
 
@@ -42,24 +40,34 @@ struct linked_list_t{
 
 #define N 3
 
+#define NUMBER_OF_PACKETS 13
+
 //generated linked list to store
 //packets for send_to_receive_buffer and
 //receive_to_send_buffer
-linkedList generate_linkedList();
+//allocates the memory for the structure internally
+linked_list_t* init_linked_list(linked_list_t*);
 
 //adds a packet to end of linked list
-void addPacket(linkedList*, packet*);
+void add_packet(linked_list_t*, packet_t*);
 
 //removes a packet from front of linked list
-packet* removePacket(linkedList*);
+//returns NULL if list is empty
+packet_t* remove_packet(linked_list_t*);
 
-unsigned char* serialize_packet(packet);
+//transforms the packet into a 6 bytes array
+unsigned char* serialize_packet(packet_t);
+
+//transforms 6 byte array into packet
+packet_t deserialize_packet(unsigned char*, packet_t*);
+
+void transmit_window(int);
 
 unsigned char* alphabet;
 
 //sender writes to it receiver reads from it
 //sender writes data packets containing alphabet
-linkedList send_to_receive_buffer;
+linked_list_t send_to_receive_buffer;
 
 //lock on send_to_receive_buffer
 pthread_mutex_t send_to_receive_mut;
@@ -69,7 +77,7 @@ pthread_cond_t sender_cv;
 
 //receiver writes to it sender reads from it
 //receiver writes ACK or NAK packets
-linkedList receive_to_send_buffer;
+linked_list_t receive_to_send_buffer;
 
 //lock on receive_to_send_buffer
 pthread_mutex_t receive_to_send_mut;

@@ -18,8 +18,8 @@
 int main(){
 
 	//init the buffers send_to_rec rec_to_send
-	send_to_receive_buffer = generate_linkedList(); //= (char*) malloc(BUFFER_SIZE * sizeof(char));
-	receive_to_send_buffer = generate_linkedList(); //(char*) malloc(BUFFER_SIZE * sizeof(char));
+	init_linked_list(&send_to_receive_buffer); //= (char*) malloc(BUFFER_SIZE * sizeof(char));
+	init_linked_list(&receive_to_send_buffer); //(char*) malloc(BUFFER_SIZE * sizeof(char));
 
 	//init the alphabet
 	alphabet = (unsigned char*) malloc(26 * sizeof(char));
@@ -48,57 +48,108 @@ int main(){
 	return 0;
 }//end main
 
-linkedList generate_linkedList(){
-	linkedList newLinkedList;
-	newLinkedList.head = NULL;
-	newLinkedList.tail = NULL;
-	newLinkedList.size = 0;
-	return newLinkedList;
+linked_list_t* init_linked_list(linked_list_t* the_list){
+	the_list = (linked_list_t*) malloc(sizeof(linked_list_t));
+	the_list->head = NULL;
+	the_list->tail = NULL;
+	the_list->size = 0;
+	return the_list;
+	
+	/*
+	newlinked_list.head = NULL;
+	newlinked_list.tail = NULL;
+	newlinked_list.size = 0;
+	return newlinked_list;*/
 }
 
-void addPacket(linkedList* list, packet* pak){
+void add_packet(linked_list_t* list, packet_t* pkt){
 	if(list->size == 0)
 	{
-		list->head = pak;
-		list->tail = pak;
-		pak->next = NULL;
+		list->head = pkt;
+		list->tail = pkt;
+		pkt->next = NULL;
 		list->size++;
 	}
 	else
 	{
-		list->tail->next = pak;
-		list->tail = pak;
-		pak->next = NULL;
+		list->tail->next = pkt;
+		list->tail = pkt;
+		pkt->next = NULL;
 		list->size++;
 	}
 }
 
 //returns NULL if element was not able to be removed.
-packet* removePacket(linkedList* list) {
+packet_t* remove_packet(linked_list_t* list) {
 	if(list->size == 0)
 	{
 		return NULL;
 	}
 	else
 	{
-		packet* returnPacket;
-		returnPacket = list->head;
+		packet_t* return_packet;
+		return_packet = list->head;
 		list->head = list->head->next;
 		list->size--;
-		return returnPacket;
+		return return_packet;
 	}
 }
 
-unsigned char* serialize_packet(packet mypacket)
+unsigned char* serialize_packet(packet_t mypacket)
 {
-	unsigned char* returnBuffer = (unsigned char*) malloc(6 * sizeof(char));
-	returnBuffer[0] = mypacket.packet_type;
-	returnBuffer[1] = mypacket.packet_number;
-	returnBuffer[2] = mypacket.data1;
-	returnBuffer[3] = mypacket.data2;
-	returnBuffer[4] = (mypacket.crc_code >> 8) & 0x00FF;
-	returnBuffer[5] = mypacket.crc_code & 0x00FF;
-	return returnBuffer;
+	unsigned char* return_buffer = (unsigned char*) malloc(6 * sizeof(char));
+	return_buffer[0] = mypacket.packet_type;
+	return_buffer[1] = mypacket.packet_number;
+	return_buffer[2] = mypacket.data[0];
+	return_buffer[3] = mypacket.data[1];
+	return_buffer[4] = (mypacket.crc_code >> 8) & 0x00FF;
+	return_buffer[5] = mypacket.crc_code & 0x00FF;
+	return return_buffer;
+}
+
+packet_t* deserialize_packet(unsigned char* pkt_buffer, packet_t* ret){
+	ret->packet_type = pkt_buffer[0];
+	ret->packet_number = pkt_buffer[1];
+	ret->data[0] = pkt_buffer[2];
+	ret->data[1] = pkt_buffer[3];
+	ret->crc_code = (pkt_buffer[4] << 8) | pkt_buffer[5];
+	return ret;
+}
+
+void transmit_window(int start){
+	//assume lock is had before this function is called
+	int i;
+	for(i=0; i<N; i++){
+	
+		if(start + i >= NUMBER_OF_PACKETS){
+			break;
+		}
+	
+		//make the packet
+		packet_t * pkt = (packet_t*) malloc(sizeof(packet_t));
+		pkt->packet_type = DATA_TYPE;
+		pkt->packet_num = start+i;
+		pkt->data[0] = alphabet[start + 2 * i];
+		pkt->data[1] = alphabet[start + 2 * i + 1];
+		pkt->crc_code = 0;
+		pkt_buffer = serialize_packet(*pkt);
+		uint16_t crc_code = crc_gen(pkt_buffer, 6, polynomial);
+		pkt->crc_code = 0;
+		
+		free(pkt_buffer);
+		
+		//get in form to corrupt
+		pkt_buffer = serialize_packet(*pkt);
+		
+		//insert error
+		
+		deserialize_packet(pkt_buffer, pkt);
+		free(pkt_buffer);
+		
+		//add to list
+		add_packet(send_to_receive, pkt);
+	}
+	
 }
 
 void *sender(void* arg){
@@ -107,9 +158,9 @@ void *sender(void* arg){
 
 	int packet_received = 0;
 
-	packet* receivedPacket;
+	packet_t* received_packet;
 
-	packet* currentPacket;
+	packet_t* current_packet;
 
 	unsigned char* working_buffer;
 
