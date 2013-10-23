@@ -55,11 +55,15 @@ void add_packet(linked_list_t*, packet_t*);
 //returns NULL if list is empty
 packet_t* remove_packet(linked_list_t*);
 
+void clear_list(linked_list_t*);
+
 //transforms the packet into a 6 bytes array
 unsigned char* serialize_packet(packet_t);
 
 //transforms 6 byte array into packet
-packet_t deserialize_packet(unsigned char*, packet_t*);
+packet_t* deserialize_packet(unsigned char*, packet_t*);
+
+void transmit_packet(int);
 
 void transmit_window(int);
 
@@ -72,9 +76,6 @@ linked_list_t send_to_receive_buffer;
 //lock on send_to_receive_buffer
 pthread_mutex_t send_to_receive_mut;
 
-//condition variable that sender has completed its buffer work
-pthread_cond_t sender_cv;
-
 //receiver writes to it sender reads from it
 //receiver writes ACK or NAK packets
 linked_list_t receive_to_send_buffer;
@@ -82,7 +83,7 @@ linked_list_t receive_to_send_buffer;
 //lock on receive_to_send_buffer
 pthread_mutex_t receive_to_send_mut;
 
-//condition variabel that receiver has completed its buffer work
-pthread_cond_t receiver_cv;
+pthread_cond_t 	 ack_sent; 	
+pthread_cond_t 	 ack_read; 	
 
 uint32_t polynomial = 0b0010001000000100001; //X^16+X^12+X^5 +1

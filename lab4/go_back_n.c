@@ -34,9 +34,9 @@ int main(){
 
 	pthread_mutex_init(&send_to_receive_mut, NULL);
 	pthread_mutex_init(&receive_to_send_mut, NULL);
-
-	pthread_cond_init(&sender_cv, NULL);
-	pthread_cond_init(&receiver_cv, NULL);
+	
+	pthread_cond_init(&ack_sent, NULL);
+	pthread_cond_init(&ack_read, NULL);
 
 	pthread_create(&sender_tid, NULL, sender, NULL);
 	pthread_create(&receiver_tid, NULL, receiver, NULL);
@@ -95,6 +95,13 @@ packet_t* remove_packet(linked_list_t* list) {
 	}
 }
 
+void clear_list(linked_list_t* list){
+	
+	while(list->size > 0){
+		free(remove_packet(list));
+	}
+}
+
 unsigned char* serialize_packet(packet_t mypacket)
 {
 	unsigned char* return_buffer = (unsigned char*) malloc(6 * sizeof(char));
@@ -116,6 +123,36 @@ packet_t* deserialize_packet(unsigned char* pkt_buffer, packet_t* ret){
 	return ret;
 }
 
+void transmit_packet(int number){
+	
+	printf("Sending packet %d\n", number);
+	
+	//make the packet
+	packet_t * pkt = (packet_t*) malloc(sizeof(packet_t));
+	pkt->packet_type = DATA_TYPE;
+	pkt->packet_number = number;
+	pkt->data[0] = alphabet[number * 2];
+	pkt->data[1] = alphabet[number * 2 + 1];
+	pkt->crc_code = 0;
+	unsigned char* pkt_buffer = serialize_packet(*pkt);
+	uint16_t crc_code = crc_gen(pkt_buffer, 6, polynomial);
+	pkt->crc_code = crc_code;
+	
+	free(pkt_buffer);
+	
+	//get in form to corrupt
+	pkt_buffer = serialize_packet(*pkt);
+	
+	//insert error
+	
+	deserialize_packet(pkt_buffer, pkt);
+	free(pkt_buffer);
+	
+	//add to list
+	add_packet(&send_to_receive_buffer, pkt);
+	
+}
+
 void transmit_window(int start){
 	//assume lock is had before this function is called
 	int i;
@@ -125,135 +162,83 @@ void transmit_window(int start){
 			break;
 		}
 	
-		//make the packet
-		packet_t * pkt = (packet_t*) malloc(sizeof(packet_t));
-		pkt->packet_type = DATA_TYPE;
-		pkt->packet_num = start+i;
-		pkt->data[0] = alphabet[start + 2 * i];
-		pkt->data[1] = alphabet[start + 2 * i + 1];
-		pkt->crc_code = 0;
-		pkt_buffer = serialize_packet(*pkt);
-		uint16_t crc_code = crc_gen(pkt_buffer, 6, polynomial);
-		pkt->crc_code = 0;
-		
-		free(pkt_buffer);
-		
-		//get in form to corrupt
-		pkt_buffer = serialize_packet(*pkt);
-		
-		//insert error
-		
-		deserialize_packet(pkt_buffer, pkt);
-		free(pkt_buffer);
-		
-		//add to list
-		add_packet(send_to_receive, pkt);
+		transmit_packet(start + i);
 	}
 	
 }
 
 void *sender(void* arg){
 	
-	unsigned char r_last = 0;
-
-	int packet_received = 0;
-
-	packet_t* received_packet;
-
-	packet_t* current_packet;
-
-	unsigned char* working_buffer;
-
-	int alphabet_index = 0;
-
-	int i;
+	int s_last = 0;
+	int s_recent = 0;
 
 	//begin critical section
 	//write some stuff
 	//write initial three to sender to receiver buffer
 	pthread_mutex_lock(&send_to_receive_mut);
-	for(i=0; i<3; i++){
-		currentPacket = (packet*)malloc(sizeof(packet));
-		currentPacket->packet_type = DATA_TYPE;
-		currentPacket->packet_number = r_last+i;
-		currentPacket->data1 = alphabet[2 * i];
-		currentPacket->data2 = alphabet[2 * i + 1];
-		currentPacket->crc_code = 0;
-		working_buffer = serialize_packet(*currentPacket);
-		uint16_t crc_code = crc_gen(working_buffer, 6, polynomial);
-		currentPacket->crc_code = crc_code;
-		addPacket(&send_to_receive_buffer, currentPacket);
-		free(working_buffer);
-	}
-
-	//end critical section
-	//release lock, signal other threads
+	
+		transmit_window(s_recent);
+		s_recent+=3;
+		
+		//end critical section
+		//release lock, signal other threads
 	pthread_mutex_unlock(&send_to_receive_mut);
 	//pthread_cond_broadcast(&sender_cv);
+
+	while(s_last < NUMBER_OF_PACKETS){
 	
-	//memcpy(send_to_receive_buffer, working_buffer, 18);
-
-	while(r_last < 13){
-
-		//wait until something in receiver to sender buffer
-		//pthread_cond_wait(&receiver_cv, &receive_to_send_mut);
-		//pthread_mutex_lock(&receive_to_send_mut);
-		//clear to read, have lock
-
-		//read the buffer
-		//memcpy(working_buffer, receive_to_send_buffer, 6);
-
-		// MAKE THESE USE LINKED LIST
-
-                //'pop' the packet from the queue
-      //          memmove(receive_to_send_buffer, receive_to_send_buffer + 6, 12);
+		int type = 0;
 		
-		//pthread_mutex_unlock(&receive_to_send_mut);
-
-		packet_received = 0;
-
-		//'pop' the packet from the queue
-		//	memmove(send_to_receive_buffer, send_to_receive_buffer + 6, 12);
-
-		packet* receivedPacket;
-
-		while(packet_received == 0)
-		{
-
-			pthread_mutex_lock(&receive_to_send_mut);
+		pthread_mutex_lock(&receive_to_send_mut);
 		
-			if(receive_to_send_buffer.size != 0)
-			{
-				receivedPacket = removePacket(&receive_to_send_buffer);
-				packet_received = 1;
-				printf("ACK received\n");
+			if(receive_to_send_buffer.size > 0){
+			
+				packet_t* received_packet = remove_packet(&receive_to_send_buffer);
+				
+				s_last = received_packet->packet_number;
+				type = received_packet->packet_type;
+				
+				free(received_packet);
 			}
-			pthread_mutex_unlock(&receive_to_send_mut);
-		}
 		
-
-		//ACK or NAK??????
-		
-		//if NAK
-		//	resend window
+		pthread_mutex_unlock(&receive_to_send_mut);
 	
-		//if ACK
-		//	if sequence number in window
-		//		r_next = sequence number
-		//		transmit values r_next through r_next +2
-		//	else
-		//		discard packet
-
-		//build the packet above, transmission here
+	
 		pthread_mutex_lock(&send_to_receive_mut);
-        	//begin critical section
-	        //write some stuff        
-
-        	//end critical section
-	        //release lock, signal other threads
-	       
+		
+			//drop packet from window
+			//slide forward
+			if(type == ACK_TYPE){
+				
+				packet_t* pkt = remove_packet(&send_to_receive_buffer);
+				//TODO print packet num
+				free(pkt);
+				
+				printf("Packet %d acknowledged\n", s_last -1);
+			}
+			
+			//retransmit window
+			else if(type == NAK_TYPE){
+			
+				clear_list(&send_to_receive_buffer);
+				//NAK from s_last
+				//TODO print it
+				transmit_window(s_last);
+				s_recent = s_last + 3;
+				
+				printf("Packet %d not acknowledged\n", s_last);
+			}
+			
+			//keep window full
+			if(send_to_receive_buffer.size < N && s_recent < NUMBER_OF_PACKETS){
+			
+				transmit_packet(s_recent++);
+			}
+		
 		pthread_mutex_unlock(&send_to_receive_mut);
-       	        pthread_cond_broadcast(&sender_cv);
+		
+		pthread_cond_broadcast(&ack_read);
+		
 	}
 
 	return NULL;
@@ -262,95 +247,68 @@ void *sender(void* arg){
 
 void *receiver(void* arg){
 
-	int packet_received = 0;
-
 	unsigned char r_next = 0;
 
-	unsigned char * working_buffer = (unsigned char*) malloc(20 * sizeof(char));
-
-	while(r_next < 13){
+	while(r_next < NUMBER_OF_PACKETS){
 		//wait for something in sender to receiver buffer
 		//pthread_cond_wait(&sender_cv, &send_to_receive_mut);
 
-//		memcpy(working_buffer, send_to_receive_buffer, 6);
-
-		// MAKE THIS USE LINKED LIST
-
-		packet_received = 0;
-
-		//'pop' the packet from the queue
-	//	memmove(send_to_receive_buffer, send_to_receive_buffer + 6, 12);
-
-		packet* receivedPacket;
-
-		while(packet_received == 0)
-		{
-
-			pthread_mutex_lock(&send_to_receive_mut);
+		packet_t* received_packet = NULL;
+		int display = 0;
+		int good = 0;
+		unsigned char data[2];
 		
-			if(send_to_receive_buffer.size != 0)
-			{
-				receivedPacket = removePacket(&send_to_receive_buffer);
-				packet_received = 1;
+		pthread_mutex_lock(&send_to_receive_mut);
+			
+			if(send_to_receive_buffer.size > 0){
+				received_packet = send_to_receive_buffer.head;
 			}
-			pthread_mutex_unlock(&send_to_receive_mut);
-		}
-
-		int packet_number = receivedPacket->packet_number;
-
-		//crc check for error
-		int good = crc_check(serialize_packet(*receivedPacket), 6, polynomial);
-
-		packet* currentPacket = (packet*) malloc(sizeof(packet));
 		
-		//if error
-		//	send NAK with r_next
-		if(!good){
-			currentPacket->packet_type = NAK_TYPE;
-			currentPacket->packet_number = r_next;
-			currentPacket->data1 = 0x00;
-			currentPacket->data2 = 0x00;
-		}
-	
-		//if !error
-		//	sequence number == r_next?
-		//	NO
-		//		NAK r_next
-		//	YES
-		//		report data to program
-		//		r_next ++
-		//		ACK r_next
-		else{
-			if(packet_number == r_next){
-				//report buffer[2] buffer[3]
-				currentPacket->packet_type = ACK_TYPE;
-	      		currentPacket->packet_number = ++r_next;
-				currentPacket->data1 = 0x00;
-				currentPacket->data2 = 0x00;
-				printf("receive to send packet type %d packet # %d\n", currentPacket->packet_type, currentPacket->packet_number);
+			if(received_packet != NULL){
+				good = crc_check(serialize_packet(*received_packet), 6, polynomial);
+			}
+			
+			if(good){
+				display = received_packet->packet_number == r_next;
+				data[0] = received_packet->data[0];
+				data[1] = received_packet->data[1];
+				
+				r_next += display;
+				
+				if(display){
+					printf("\t\tPacket %d:%c%c\n",
+						received_packet->packet_number,
+						received_packet->data[0],
+						received_packet->data[1]);
+				}
+				else{
+					printf("\t\tPacket %d out of sequence\n",
+						received_packet->packet_number);
+				}
 			}
 			else{
-				currentPacket->packet_type = NAK_TYPE;
-				currentPacket->packet_number = r_next;
-				currentPacket->data1 = 0x00;
-				currentPacket->data2 = 0x00;
-			}	
-		}
-
-		uint16_t crc_code = crc_gen(serialize_packet(*currentPacket), 6, polynomial);
-		currentPacket->crc_code = crc_code;
+				printf("\t\tPacket %d in error\n", received_packet->packet_number);
+			}
 		
-		//build packet above send below
+		pthread_mutex_unlock(&send_to_receive_mut);
+		
+		if(received_packet != NULL){
 		pthread_mutex_lock(&receive_to_send_mut);
 		
-		//write packet
-//		memcpy(receive_to_send_buffer, working_buffer, 6);
-
-		// ADD TO LINK LIST
-		addPacket(&receive_to_send_buffer, currentPacket);
-
+			packet_t* pkt = (packet_t*) malloc(sizeof(packet_t));
+			
+			pkt->packet_type = (good) ? ACK_TYPE : NAK_TYPE;
+			pkt->packet_number = r_next;
+			
+			add_packet(&receive_to_send_buffer, pkt);
+		
 		pthread_mutex_unlock(&receive_to_send_mut);
-		//pthread_cond_broadcast(&sender_cv);
+		}
+		
+		//wait for sender to read ack and move state
+		pthread_mutex_lock(&send_to_receive_mut);
+		pthread_cond_wait(&ack_read, &send_to_receive_mut);
+		pthread_mutex_unlock(&send_to_receive_mut);
 	}
 
 	return NULL;
