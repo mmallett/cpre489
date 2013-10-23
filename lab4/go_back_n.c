@@ -17,6 +17,8 @@
 
 int main(){
 
+	mattsbigcounter = 0;
+
 	//init the buffers send_to_rec rec_to_send
 	init_linked_list(&send_to_receive_buffer); //= (char*) malloc(BUFFER_SIZE * sizeof(char));
 	init_linked_list(&receive_to_send_buffer); //(char*) malloc(BUFFER_SIZE * sizeof(char));
@@ -44,6 +46,8 @@ int main(){
 	//join the 2 threads
 	pthread_join(sender_tid, NULL);
 	pthread_join(receiver_tid, NULL);
+	
+	printf("%d transmissions\n", mattsbigcounter);
 
 	return 0;
 }//end main
@@ -55,11 +59,6 @@ linked_list_t* init_linked_list(linked_list_t* the_list){
 	the_list->size = 0;
 	return the_list;
 	
-	/*
-	newlinked_list.head = NULL;
-	newlinked_list.tail = NULL;
-	newlinked_list.size = 0;
-	return newlinked_list;*/
 }
 
 void add_packet(linked_list_t* list, packet_t* pkt){
@@ -104,13 +103,14 @@ void clear_list(linked_list_t* list){
 
 unsigned char* serialize_packet(packet_t mypacket)
 {
-	unsigned char* return_buffer = (unsigned char*) malloc(6 * sizeof(char));
+	unsigned char* return_buffer = (unsigned char*) malloc(7 * sizeof(char));
 	return_buffer[0] = mypacket.packet_type;
 	return_buffer[1] = mypacket.packet_number;
 	return_buffer[2] = mypacket.data[0];
 	return_buffer[3] = mypacket.data[1];
 	return_buffer[4] = (mypacket.crc_code >> 8) & 0x00FF;
 	return_buffer[5] = mypacket.crc_code & 0x00FF;
+	return_buffer[6] = '\0';
 	return return_buffer;
 }
 
@@ -123,7 +123,24 @@ packet_t* deserialize_packet(unsigned char* pkt_buffer, packet_t* ret){
 	return ret;
 }
 
+void IntroduceError(char *data, double p)
+{
+	char c, *pointer = data;
+	int i;
+	while (*pointer != '\0') {
+		c = 0x01;
+		for ( i = 0; i < 8; i++) {
+			if ((double)random()/M <= p)
+				*pointer ^= c;
+			c <<= 1;
+		}
+		pointer++;
+	}
+}
+
 void transmit_packet(int number){
+
+	mattsbigcounter++;
 	
 	printf("Sending packet %d\n", number);
 	
@@ -144,6 +161,7 @@ void transmit_packet(int number){
 	pkt_buffer = serialize_packet(*pkt);
 	
 	//insert error
+	IntroduceError(pkt_buffer, P);
 	
 	deserialize_packet(pkt_buffer, pkt);
 	free(pkt_buffer);
@@ -222,11 +240,13 @@ void *sender(void* arg){
 			
 				clear_list(&send_to_receive_buffer);
 				//NAK from s_last
-				//TODO print it
+				printf("Packet %d not acknowledged\n", s_last);
+				printf("Retransmitting %d - %d\n", s_last, 
+					(s_last + 2 < NUMBER_OF_PACKETS) ? s_last + 2 : NUMBER_OF_PACKETS);
 				transmit_window(s_last);
 				s_recent = s_last + 3;
 				
-				printf("Packet %d not acknowledged\n", s_last);
+				
 			}
 			
 			//keep window full

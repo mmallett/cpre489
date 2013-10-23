@@ -4,9 +4,14 @@
  * go_back_n.h
  * go back n ARQ definitions
  */
+ 
+//probability of bit corruption
+#define P 0.005
 
 #include <pthread.h>
 #include <stdint.h>
+
+int mattsbigcounter;
 
 //function definitions for sender and receiver threads
 void *sender(void *);
@@ -87,3 +92,7 @@ pthread_cond_t 	 ack_sent;
 pthread_cond_t 	 ack_read; 	
 
 uint32_t polynomial = 0b0010001000000100001; //X^16+X^12+X^5 +1
+
+long M = 2147483647;
+
+void IntroduceError(char*, double);
