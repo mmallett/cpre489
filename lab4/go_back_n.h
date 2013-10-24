@@ -6,17 +6,19 @@
  */
  
 //probability of bit corruption
-#define P 0.005
+#define P 0.01
 
 #include <pthread.h>
 #include <stdint.h>
 
+//count number of transmissions
 int mattsbigcounter;
 
 //function definitions for sender and receiver threads
 void *sender(void *);
 void *receiver(void *);
 
+//packet data structure holds all information of a packet
 typedef struct packet packet_t;
 
 struct packet{
@@ -27,6 +29,7 @@ struct packet{
 	uint16_t crc_code;
 };
 
+//linked list data structure chains together packets
 typedef struct linked_list linked_list_t;
 
 struct linked_list{
@@ -60,6 +63,7 @@ void add_packet(linked_list_t*, packet_t*);
 //returns NULL if list is empty
 packet_t* remove_packet(linked_list_t*);
 
+//empties given list
 void clear_list(linked_list_t*);
 
 //transforms the packet into a 6 bytes array
@@ -68,10 +72,13 @@ unsigned char* serialize_packet(packet_t);
 //transforms 6 byte array into packet
 packet_t* deserialize_packet(unsigned char*, packet_t*);
 
+//transmits packet with given id
 void transmit_packet(int);
 
+//transmits N packets, checks bounds of NUMBER OF PACKETS
 void transmit_window(int);
 
+//pointer to memory containing alphabet
 unsigned char* alphabet;
 
 //sender writes to it receiver reads from it
@@ -88,6 +95,7 @@ linked_list_t receive_to_send_buffer;
 //lock on receive_to_send_buffer
 pthread_mutex_t receive_to_send_mut;
 
+//cvs to signal that sender has read an ack/nak 
 pthread_cond_t 	 ack_sent; 	
 pthread_cond_t 	 ack_read; 	
 

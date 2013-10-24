@@ -12,7 +12,7 @@
 // construct the data buffer
 void init_data_buffer(){
 	//overcommit on memory to stop weird things from happening..
-	data_buffer = (char*) calloc((DATA_BUFFER_SIZE + 20) , sizeof(char));
+	data_buffer = (unsigned char*) calloc((DATA_BUFFER_SIZE + 20) , sizeof(char));
 }
 
 // read data from keyboard into data buffer
@@ -164,23 +164,6 @@ END:
 /* The routine does not return anything. */
 /* */
 /*****************************************************************************/
-
-long M = 2147483647;
-
-void IntroduceError(char *data, double p)
-{
-	char c, *pointer = data;
-	int i;
-	while (*pointer != '\0') {
-		c = 0x01;
-		for ( i = 0; i < 8; i++) {
-			if ((double)random()/M <= p)
-				*pointer ^= c;
-			c <<= 1;
-		}
-		pointer++;
-	}
-}
 
 //formats input prompt printing
 void prompt(char* message){

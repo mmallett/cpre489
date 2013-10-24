@@ -55,8 +55,6 @@ int crc_check(unsigned char* data, int data_length,  uint32_t gen_poly);
 // compute crc checksum
 uint32_t crc_alg(unsigned char* data, int data_length, uint32_t gen_poly);
 
-//introduces error bits into data with probability p
-void IntroduceError(char *data, double p);
 
 //////////////////////////////////////////
 // NICE TO HAVES

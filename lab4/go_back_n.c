@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <pthread.h>
 #include <stdint.h>
@@ -17,6 +18,7 @@
 
 int main(){
 
+	//count number of transmissions
 	mattsbigcounter = 0;
 
 	//init the buffers send_to_rec rec_to_send
@@ -52,6 +54,7 @@ int main(){
 	return 0;
 }//end main
 
+//adds a packet to end of linked list
 linked_list_t* init_linked_list(linked_list_t* the_list){
 	the_list = (linked_list_t*) malloc(sizeof(linked_list_t));
 	the_list->head = NULL;
@@ -78,6 +81,7 @@ void add_packet(linked_list_t* list, packet_t* pkt){
 	}
 }
 
+//removes a packet from front of linked list
 //returns NULL if element was not able to be removed.
 packet_t* remove_packet(linked_list_t* list) {
 	if(list->size == 0)
@@ -94,6 +98,7 @@ packet_t* remove_packet(linked_list_t* list) {
 	}
 }
 
+//empties given list
 void clear_list(linked_list_t* list){
 	
 	while(list->size > 0){
@@ -101,6 +106,7 @@ void clear_list(linked_list_t* list){
 	}
 }
 
+//transforms the packet into a 6 bytes array
 unsigned char* serialize_packet(packet_t mypacket)
 {
 	unsigned char* return_buffer = (unsigned char*) malloc(7 * sizeof(char));
@@ -114,6 +120,7 @@ unsigned char* serialize_packet(packet_t mypacket)
 	return return_buffer;
 }
 
+//transforms 6 byte array into packet
 packet_t* deserialize_packet(unsigned char* pkt_buffer, packet_t* ret){
 	ret->packet_type = pkt_buffer[0];
 	ret->packet_number = pkt_buffer[1];
@@ -138,6 +145,7 @@ void IntroduceError(char *data, double p)
 	}
 }
 
+//transmits packet with given id
 void transmit_packet(int number){
 
 	mattsbigcounter++;
@@ -171,6 +179,7 @@ void transmit_packet(int number){
 	
 }
 
+//transmits N packets, checks bounds of NUMBER OF PACKETS
 void transmit_window(int start){
 	//assume lock is had before this function is called
 	int i;
@@ -207,6 +216,7 @@ void *sender(void* arg){
 	
 		int type = 0;
 		
+		//lock receive/send to check for ack/nak
 		pthread_mutex_lock(&receive_to_send_mut);
 		
 			if(receive_to_send_buffer.size > 0){
@@ -222,6 +232,7 @@ void *sender(void* arg){
 		pthread_mutex_unlock(&receive_to_send_mut);
 	
 	
+		//lock send/receive to send more data packets
 		pthread_mutex_lock(&send_to_receive_mut);
 		
 			//drop packet from window
@@ -251,7 +262,6 @@ void *sender(void* arg){
 			
 			//keep window full
 			if(send_to_receive_buffer.size < N && s_recent < NUMBER_OF_PACKETS){
-			
 				transmit_packet(s_recent++);
 			}
 		
@@ -267,6 +277,8 @@ void *sender(void* arg){
 
 void *receiver(void* arg){
 
+	sleep(1);
+
 	unsigned char r_next = 0;
 
 	while(r_next < NUMBER_OF_PACKETS){
@@ -278,16 +290,20 @@ void *receiver(void* arg){
 		int good = 0;
 		unsigned char data[2];
 		
+		//lock send/receive buffer
 		pthread_mutex_lock(&send_to_receive_mut);
-			
+		
+			//we have a packet from sender
 			if(send_to_receive_buffer.size > 0){
 				received_packet = send_to_receive_buffer.head;
 			}
-		
+			
+			//check if packet intact
 			if(received_packet != NULL){
 				good = crc_check(serialize_packet(*received_packet), 6, polynomial);
 			}
 			
+			//packet intact
 			if(good){
 				display = received_packet->packet_number == r_next;
 				data[0] = received_packet->data[0];
@@ -295,23 +311,27 @@ void *receiver(void* arg){
 				
 				r_next += display;
 				
+				//print packet data and number
 				if(display){
 					printf("\t\tPacket %d:%c%c\n",
 						received_packet->packet_number,
 						received_packet->data[0],
 						received_packet->data[1]);
 				}
+				//out of sequence print only number
 				else{
 					printf("\t\tPacket %d out of sequence\n",
 						received_packet->packet_number);
 				}
 			}
+			//packet error
 			else{
 				printf("\t\tPacket %d in error\n", received_packet->packet_number);
 			}
 		
 		pthread_mutex_unlock(&send_to_receive_mut);
 		
+		//lock receiver/send buffer to send ack/nak
 		if(received_packet != NULL){
 		pthread_mutex_lock(&receive_to_send_mut);
 		
